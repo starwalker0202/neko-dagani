@@ -173,6 +173,22 @@ let score=0,timeLeft=30,playing=false,popTimer=null,clock=null,hits={},celebrate
 const scoreEl=document.getElementById('score'),timeEl=document.getElementById('time'),msgEl=document.getElementById('msg');
 let actx=null;
 function initAudio(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(actx&&actx.state==='suspended') actx.resume(); }
+// glide: 周波数を[from→to→end]と滑らせて鳴き声らしくする
+function glide(points,type,vol){
+ if(!actx)return;
+ const now=actx.currentTime;
+ const o=actx.createOscillator(),g=actx.createGain();
+ o.type=type||'sawtooth';
+ o.frequency.setValueAtTime(points[0].f,now);
+ points.forEach(p=>{ o.frequency.exponentialRampToValueAtTime(p.f,now+p.t); });
+ const total=points[points.length-1].t;
+ g.gain.setValueAtTime(0.0001,now);
+ g.gain.exponentialRampToValueAtTime(vol||0.5,now+0.03);
+ g.gain.setValueAtTime(vol||0.5,now+total*0.6);
+ g.gain.exponentialRampToValueAtTime(0.0001,now+total+0.05);
+ o.connect(g); g.connect(actx.destination);
+ o.start(now); o.stop(now+total+0.1);
+}
 function tone(freqs,dur,type,vol){
  if(!actx)return;
  const now=actx.currentTime;
@@ -186,11 +202,13 @@ function tone(freqs,dur,type,vol){
   o.start(now+f.t); o.stop(now+f.t+(f.d||dur)+0.02);
  });
 }
-function playNya(){ tone([{f:760,t:0,d:0.09},{f:520,t:0.08,d:0.14}],0.12,'sine',0.2); }
-function playGya(){ tone([{f:300,t:0,d:0.06},{f:150,t:0.05,d:0.1}],0.1,'sawtooth',0.14); }
+// にゃあ: 高→低へ二段グライド
+function playNya(){ glide([{f:900,t:0},{f:1150,t:0.08},{f:560,t:0.32}],'sawtooth',0.5); }
+// ぎゃ: 濁った急な下降音
+function playGya(){ glide([{f:520,t:0},{f:180,t:0.16}],'square',0.4); }
 function playFanfare(){
  const seq=[523,659,784,1047,784,1047];
- tone(seq.map((f,i)=>({f:f,t:i*0.12,d:0.2})),0.2,'triangle',0.22);
+ tone(seq.map((f,i)=>({f:f,t:i*0.12,d:0.22})),0.22,'triangle',0.4);
 }
 function popCat(){
  if(!playing)return;
