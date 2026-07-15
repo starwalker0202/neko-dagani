@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>あーちゃん家の猫だがに</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: "Hiragino Maru Gothic ProN", "BIZ UDGothic", "Yu Gothic", sans-serif;
+    background: #f5efe2;
+    color: #3d3428;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 12px 32px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  h1 { font-size: 24px; font-weight: 600; margin: 8px 0 2px; letter-spacing: 0.04em; }
+  .sub { font-size: 13px; color: #8a7c66; margin-bottom: 12px; }
+  .stats { display: flex; gap: 12px; margin-bottom: 12px; }
+  .stat {
+    background: #fffdf7; border: 1.5px solid #e0d5bf; border-radius: 12px;
+    padding: 6px 20px; text-align: center; min-width: 96px;
+  }
+  .stat .lbl { font-size: 11px; color: #8a7c66; }
+  .stat .val { font-size: 24px; font-weight: 600; }
+  button#startBtn {
+    font-family: inherit; font-size: 16px; font-weight: 600;
+    background: #6e8b5e; color: #fffdf7; border: none; border-radius: 24px;
+    padding: 10px 40px; cursor: pointer; margin-bottom: 8px;
+    transition: transform 0.1s;
+  }
+  button#startBtn:active { transform: scale(0.95); }
+  #msg { height: 26px; font-size: 16px; font-weight: 600; color: #b5602f; margin-bottom: 4px; }
+  #board {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    width: 100%; max-width: 460px;
+  }
+  .hole {
+    position: relative; aspect-ratio: 1/1;
+    background: #e9dfc8; border: 1.5px solid #d5c8ab; border-radius: 14px;
+    overflow: hidden; cursor: pointer;
+  }
+  .mound {
+    position: absolute; bottom: 0; left: 10%; width: 80%; height: 22%;
+    background: #7a6248; border-radius: 50% 50% 0 0;
+  }
+  .catwrap {
+    position: absolute; inset: 0;
+    display: flex; align-items: flex-end; justify-content: center;
+    transform: translateY(105%);
+    transition: transform 0.18s ease-out;
+  }
+  .catname {
+    position: absolute; top: 6px; left: 0; right: 0; text-align: center;
+    font-size: 14px; font-weight: 600; color: #3d3428;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  #tally {
+    display: none; width: 100%; max-width: 460px; margin-top: 14px;
+    background: #fffdf7; border: 1.5px solid #e0d5bf; border-radius: 14px;
+    padding: 12px 16px;
+  }
+  #tally .tl { font-size: 13px; color: #8a7c66; margin-bottom: 8px; }
+  #tallyList { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 6px; font-size: 14px; }
+  .guide {
+    width: 100%; max-width: 460px; margin-top: 14px;
+    font-size: 12px; color: #8a7c66; line-height: 1.8; text-align: center;
+  }
+  #celebrate {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(61,52,40,0.86);
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px; text-align: center;
+  }
+  .celtext {
+    font-size: 30px; font-weight: 700; color: #ffe9a8;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    animation: pop 0.5s ease-out;
+  }
+  .celsub { font-size: 16px; color: #fffdf7; margin-top: 12px; }
+  #celebrateCats {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 4px;
+    max-width: 420px; margin: 18px 0;
+  }
+  .celcat { width: 72px; animation: bounce 0.6s ease-out both; }
+  @keyframes pop { 0%{transform:scale(0.3);opacity:0} 100%{transform:scale(1);opacity:1} }
+  @keyframes bounce { 0%{transform:translateY(40px) scale(0.5);opacity:0} 60%{transform:translateY(-8px) scale(1.05)} 100%{transform:translateY(0) scale(1);opacity:1} }
+  #confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .conf {
+    position: absolute; top: -12px; width: 10px; height: 14px; border-radius: 2px;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    0%{ transform: translateY(-20px) rotate(0deg); opacity:1 }
+    100%{ transform: translateY(105vh) rotate(540deg); opacity:0.9 }
+  }
+</style>
+</head>
+<body>
+<h1>あーちゃん家の猫だがに</h1>
+<p class="sub">顔を出した猫をタップ!(30秒)</p>
+<div class="stats">
+  <div class="stat"><div class="lbl">スコア</div><div class="val" id="score">0</div></div>
+  <div class="stat"><div class="lbl">残り時間</div><div class="val" id="time">30</div></div>
+</div>
+<button id="startBtn">スタート</button>
+<div id="msg"></div>
+<div id="board"></div>
+<div id="tally">
+  <div class="tl">たたけた猫たち</div>
+  <div id="tallyList"></div>
+</div>
+<p class="guide">ちー(小さい)は3点 / のり・はる(デカい)は1点 / ほかの子は2点</p>
+<div id="celebrate">
+  <div id="confetti"></div>
+  <div class="celtext">100点突破 おめでとう!</div>
+  <div id="celebrateCats"></div>
+  <div class="celsub">8匹みんなでお祝いだがに</div>
+</div>
+<script>
+const CATS = [
+ {id:'chi', name:'ちー', desc:'小さい', scale:0.68, body:'#9aa3ad', stripe:'#5c6670', pts:3},
+ {id:'nori', name:'のり', desc:'デカい', scale:1.15, body:'#9aa3ad', stripe:'#5c6670', pts:1},
+ {id:'uri', name:'うり', desc:'ウリボー顔', scale:0.95, body:'#8f9aa5', stripe:'#525c66', uri:true, pts:2},
+ {id:'shima', name:'しま', desc:'しましま', scale:0.95, body:'#a3acb5', stripe:'#4a545e', extraStripes:true, pts:2},
+ {id:'leo', name:'れお', desc:'豹柄', scale:0.95, body:'#b0a68f', stripe:'#6b5f45', spots:true, pts:2},
+ {id:'haru', name:'はる', desc:'泣きそうな目', scale:1.15, body:'#9aa3ad', stripe:'#5c6670', teary:true, pts:1},
+ {id:'moka', name:'もか', desc:'茶', scale:0.95, body:'#b08860', stripe:'#7a5530', pts:2},
+ {id:'suba', name:'すば', desc:'少し三毛', scale:0.95, body:'#9aa3ad', stripe:'#5c6670', mike:true, pts:2}
+];
+function catSVG(c){
+ let marks='';
+ if(c.spots){
+  marks=[[35,42],[50,38],[65,44],[42,56],[58,58],[30,55],[70,56]].map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.2" fill="'+c.stripe+'" opacity="0.85"/>').join('');
+ } else if(c.uri){
+  marks='<path d="M44 30 V50 M50 28 V48 M56 30 V50" stroke="#e8e0d0" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.9"/><path d="M30 40 Q28 50 30 58 M70 40 Q72 50 70 58" stroke="'+c.stripe+'" stroke-width="3" stroke-linecap="round" fill="none"/>';
+ } else {
+  const n=c.extraStripes?[38,44,50,56,62]:[42,50,58];
+  marks=n.map(x=>'<path d="M'+x+' 28 Q'+x+' 34 '+(x-1)+' 40" stroke="'+c.stripe+'" stroke-width="'+(c.extraStripes?3.5:3)+'" stroke-linecap="round" fill="none"/>').join('');
+  if(c.extraStripes) marks+='<path d="M28 48 Q26 54 28 60 M72 48 Q74 54 72 60" stroke="'+c.stripe+'" stroke-width="3.5" stroke-linecap="round" fill="none"/>';
+ }
+ if(c.mike) marks+='<path d="M62 26 Q78 30 76 48 Q70 42 60 40 Z" fill="#c98a3e"/><path d="M24 34 Q22 48 30 54 Q34 44 32 36 Z" fill="#3a3a3a" opacity="0.8"/>';
+ let eyes;
+ if(c.teary){
+  eyes='<path d="M32 54 Q38 50 44 54" stroke="#2c2c2a" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M56 54 Q62 50 68 54" stroke="#2c2c2a" stroke-width="3" stroke-linecap="round" fill="none"/><circle cx="36" cy="58" r="2" fill="#7ab8e0"/><circle cx="64" cy="58" r="2" fill="#7ab8e0"/>';
+ } else {
+  eyes='<circle cx="38" cy="53" r="4.5" fill="#2c2c2a"/><circle cx="62" cy="53" r="4.5" fill="#2c2c2a"/><circle cx="39.5" cy="51.5" r="1.4" fill="#fff"/><circle cx="63.5" cy="51.5" r="1.4" fill="#fff"/>';
+ }
+ return '<svg viewBox="0 0 100 100" width="100" height="100" style="width:'+(78*c.scale)+'%;height:auto;aspect-ratio:1/1;display:block;margin:0 auto;">'
+ +'<path d="M22 40 L16 14 L38 26 Z" fill="'+c.body+'"/><path d="M22 36 L19 21 L32 28 Z" fill="#e8a5a5"/>'
+ +'<path d="M78 40 L84 14 L62 26 Z" fill="'+(c.mike?'#c98a3e':c.body)+'"/><path d="M78 36 L81 21 L68 28 Z" fill="#e8a5a5"/>'
+ +'<ellipse cx="50" cy="55" rx="30" ry="28" fill="'+c.body+'"/>'
+ +marks+eyes
+ +'<path d="M50 62 L46.5 66 Q50 69 53.5 66 Z" fill="#d98a8a"/>'
+ +'<path d="M46 70 Q50 74 54 70" stroke="#2c2c2a" stroke-width="2" stroke-linecap="round" fill="none"/>'
+ +'<path d="M20 60 H34 M20 66 Q28 66 34 64 M80 60 H66 M80 66 Q72 66 66 64" stroke="#4a4a48" stroke-width="1.6" stroke-linecap="round" fill="none"/>'
+ +'</svg>';
+}
+const board=document.getElementById('board');
+const holes=[];
+for(let i=0;i<9;i++){
+ const h=document.createElement('div');
+ h.className='hole';
+ h.innerHTML='<div class="mound"></div><div class="catwrap"></div><div class="catname"></div>';
+ board.appendChild(h);
+ holes.push({el:h,wrap:h.querySelector('.catwrap'),label:h.querySelector('.catname'),cat:null,timer:null});
+}
+let score=0,timeLeft=30,playing=false,popTimer=null,clock=null,hits={},celebrated=false;
+const scoreEl=document.getElementById('score'),timeEl=document.getElementById('time'),msgEl=document.getElementById('msg');
+let actx=null;
+function initAudio(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(actx&&actx.state==='suspended') actx.resume(); }
+function tone(freqs,dur,type,vol){
+ if(!actx)return;
+ const now=actx.currentTime;
+ freqs.forEach((f)=>{
+  const o=actx.createOscillator(),g=actx.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(f.f,now+f.t);
+  g.gain.setValueAtTime(0,now+f.t);
+  g.gain.linearRampToValueAtTime(vol||0.18,now+f.t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.001,now+f.t+(f.d||dur));
+  o.connect(g); g.connect(actx.destination);
+  o.start(now+f.t); o.stop(now+f.t+(f.d||dur)+0.02);
+ });
+}
+function playNya(){ tone([{f:760,t:0,d:0.09},{f:520,t:0.08,d:0.14}],0.12,'sine',0.2); }
+function playGya(){ tone([{f:300,t:0,d:0.06},{f:150,t:0.05,d:0.1}],0.1,'sawtooth',0.14); }
+function playFanfare(){
+ const seq=[523,659,784,1047,784,1047];
+ tone(seq.map((f,i)=>({f:f,t:i*0.12,d:0.2})),0.2,'triangle',0.22);
+}
+function popCat(){
+ if(!playing)return;
+ const free=holes.filter(h=>!h.cat);
+ if(free.length){
+  const h=free[Math.floor(Math.random()*free.length)];
+  const c=CATS[Math.floor(Math.random()*CATS.length)];
+  h.cat=c;
+  h.wrap.innerHTML=catSVG(c);
+  h.label.textContent=c.name;
+  h.label.style.opacity='1';
+  requestAnimationFrame(()=>{h.wrap.style.transform='translateY(8%)';});
+  const stay=650+Math.random()*750;
+  h.timer=setTimeout(()=>hideCat(h),stay);
+ }
+ popTimer=setTimeout(popCat,320+Math.random()*480);
+}
+function hideCat(h){
+ clearTimeout(h.timer);h.timer=null;h.cat=null;
+ h.wrap.style.transform='translateY(105%)';
+ h.label.style.opacity='0';
+}
+holes.forEach(h=>{
+ h.el.addEventListener('pointerdown',()=>{
+  if(!playing)return;
+  initAudio();
+  if(!h.cat){ playGya(); msgEl.textContent='ぎゃっ! 猫がいないよ'; return; }
+  const c=h.cat;
+  playNya();
+  score+=c.pts;
+  hits[c.id]=(hits[c.id]||0)+1;
+  scoreEl.textContent=score;
+  msgEl.textContent=c.name+' +'+c.pts+'点!';
+  h.wrap.style.transform='translateY(105%) scale(0.9)';
+  h.label.style.opacity='0';
+  clearTimeout(h.timer);h.timer=null;h.cat=null;
+  if(score>=100&&!celebrated){ celebrated=true; celebrate(); }
+ });
+});
+document.getElementById('startBtn').addEventListener('click',()=>{
+ if(playing)return;
+ initAudio();
+ score=0;timeLeft=30;hits={};playing=true;celebrated=false;
+ scoreEl.textContent='0';timeEl.textContent='30';msgEl.textContent='';
+ document.getElementById('tally').style.display='none';
+ holes.forEach(hideCat);
+ popCat();
+ clock=setInterval(()=>{
+  timeLeft--;timeEl.textContent=timeLeft;
+  if(timeLeft<=0)endGame();
+ },1000);
+});
+function celebrate(){
+ playFanfare();
+ const overlay=document.getElementById('celebrate');
+ const row=document.getElementById('celebrateCats');
+ row.innerHTML=CATS.map((c,i)=>'<div class="celcat" style="animation-delay:'+(i*0.08)+'s">'+catSVG(c)+'</div>').join('');
+ overlay.style.display='flex';
+ // 紙吹雪
+ const conf=document.getElementById('confetti');
+ conf.innerHTML='';
+ const colors=['#e8a5a5','#8bb0d8','#f0c96b','#8fbf7f','#c98a3e','#b48fc9'];
+ for(let i=0;i<40;i++){
+  const p=document.createElement('div');
+  p.className='conf';
+  p.style.left=(Math.random()*100)+'%';
+  p.style.background=colors[i%colors.length];
+  p.style.animationDelay=(Math.random()*0.6)+'s';
+  p.style.animationDuration=(1.6+Math.random())+'s';
+  conf.appendChild(p);
+ }
+ setTimeout(()=>{ overlay.style.display='none'; },3200);
+}
+function endGame(){
+ playing=false;clearInterval(clock);clearTimeout(popTimer);
+ holes.forEach(hideCat);
+ msgEl.textContent='おしまい! '+score+'点でした';
+ const list=document.getElementById('tallyList');
+ list.innerHTML=CATS.map(c=>'<div>'+c.name+': '+(hits[c.id]||0)+'回</div>').join('');
+ document.getElementById('tally').style.display='block';
+}
+</script>
+</body>
+</html>
